@@ -28,7 +28,7 @@ class Prefixes(Record):
 
     @property
     def available_ips(self):
-        """ Represents the ``available-ips`` detail endpoint.
+        """Represents the ``available-ips`` detail endpoint.
 
         Returns a DetailEndpoint object that is the interface for
         viewing and creating IP addresses inside a prefix.
@@ -59,7 +59,7 @@ class Prefixes(Record):
 
     @property
     def available_prefixes(self):
-        """ Represents the ``available-prefixes`` detail endpoint.
+        """Represents the ``available-prefixes`` detail endpoint.
 
         Returns a DetailEndpoint object that is the interface for
         viewing and creating prefixes inside a parent prefix.
@@ -101,13 +101,13 @@ class Aggregates(Record):
 
 class Vlans(Record):
     def __str__(self):
-        return super().__str__(self) or str(self.vid)
+        return super().__str__() or str(self.vid)
 
 
 class VlanGroups(Record):
     @property
     def available_vlans(self):
-        """ Represents the ``available-vlans`` detail endpoint.
+        """Represents the ``available-vlans`` detail endpoint.
 
         Returns a DetailEndpoint object that is the interface for
         viewing and creating VLANs inside a VLAN group.

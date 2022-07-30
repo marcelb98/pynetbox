@@ -22,7 +22,7 @@ from six.moves.urllib.parse import urlencode
 
 
 def calc_pages(limit, count):
-    """ Calculate number of pages required for full results set. """
+    """Calculate number of pages required for full results set."""
     return int(count / limit) + (limit % count > 0)
 
 
@@ -43,18 +43,16 @@ class RequestError(Exception):
 
     """
 
-    def __init__(self, message):
-        req = message
-
+    def __init__(self, req):
         if req.status_code == 404:
-            message = "The requested url: {} could not be found.".format(req.url)
+            self.message = "The requested url: {} could not be found.".format(req.url)
         else:
             try:
-                message = "The request failed with code {} {}: {}".format(
+                self.message = "The request failed with code {} {}: {}".format(
                     req.status_code, req.reason, req.json()
                 )
             except ValueError:
-                message = (
+                self.message = (
                     "The request failed with code {} {} but more specific "
                     "details were not returned in json. Check the NetBox Logs "
                     "or investigate this exception's error attribute.".format(
@@ -62,11 +60,14 @@ class RequestError(Exception):
                     )
                 )
 
-        super(RequestError, self).__init__(message)
+        super(RequestError, self).__init__(req)
         self.req = req
         self.request_body = req.request.body
         self.base = req.url
         self.error = req.text
+
+    def __str__(self):
+        return self.message
 
 
 class AllocationError(Exception):
@@ -77,16 +78,15 @@ class AllocationError(Exception):
     NetBox 3.1.1) or 409 Conflict (since NetBox 3.1.1+).
     """
 
-    def __init__(self, message):
-        req = message
-
-        message = "The requested allocation could not be fulfilled."
-
-        super(AllocationError, self).__init__(message)
+    def __init__(self, req):
+        super(AllocationError, self).__init__(req)
         self.req = req
         self.request_body = req.request.body
         self.base = req.url
-        self.error = message
+        self.error = "The requested allocation could not be fulfilled."
+
+    def __str__(self):
+        return self.error
 
 
 class ContentError(Exception):
@@ -97,18 +97,17 @@ class ContentError(Exception):
     exception is raised in those cases.
     """
 
-    def __init__(self, message):
-        req = message
-
-        message = (
-            "The server returned invalid (non-json) data. Maybe not " "a NetBox server?"
-        )
-
-        super(ContentError, self).__init__(message)
+    def __init__(self, req):
+        super(ContentError, self).__init__(req)
         self.req = req
         self.request_body = req.request.body
         self.base = req.url
-        self.error = message
+        self.error = (
+            "The server returned invalid (non-json) data. Maybe not a NetBox server?"
+        )
+
+    def __str__(self):
+        return self.error
 
 
 class Request(object):
@@ -165,7 +164,7 @@ class Request(object):
         self.offset = offset
 
     def get_openapi(self):
-        """ Gets the OpenAPI Spec """
+        """Gets the OpenAPI Spec"""
         headers = {
             "Content-Type": "application/json;",
         }
@@ -179,7 +178,7 @@ class Request(object):
             raise RequestError(req)
 
     def get_version(self):
-        """ Gets the API version of NetBox.
+        """Gets the API version of NetBox.
 
         Issues a GET request to the base URL to read the API version from the
         response headers.
@@ -191,7 +190,10 @@ class Request(object):
         headers = {
             "Content-Type": "application/json;",
         }
-        req = self.http_session.get(self.normalize_url(self.base), headers=headers,)
+        req = self.http_session.get(
+            self.normalize_url(self.base),
+            headers=headers,
+        )
         if req.ok:
             return req.headers.get("API-Version", "")
         else:
@@ -223,7 +225,7 @@ class Request(object):
             raise RequestError(req)
 
     def get_status(self):
-        """ Gets the status from /api/status/ endpoint in NetBox.
+        """Gets the status from /api/status/ endpoint in NetBox.
 
         :Returns: Dictionary as returned by NetBox.
         :Raises: RequestError if request is not successful.
@@ -232,7 +234,8 @@ class Request(object):
         if self.token:
             headers["authorization"] = "Token {}".format(self.token)
         req = self.http_session.get(
-            "{}status/".format(self.normalize_url(self.base)), headers=headers,
+            "{}status/".format(self.normalize_url(self.base)),
+            headers=headers,
         )
         if req.ok:
             return req.json()
@@ -240,8 +243,7 @@ class Request(object):
             raise RequestError(req)
 
     def normalize_url(self, url):
-        """ Builds a url for POST actions.
-        """
+        """Builds a url for POST actions."""
         if url[-1] != "/":
             return "{}/".format(url)
 
